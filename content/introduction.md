@@ -15,12 +15,12 @@ While some evolving datasets, such as [DBpedia](cite:cites dbpedia),
 are published as separate dumps per version,
 more direct and efficient access to prior versions is desired.
 
-In 2015, however, [a survey on archiving Linked Open Data](cite:cites archiving) illustrated the need for improved versioning capabilities,
+In 2015, [a survey on archiving Linked Open Data](cite:cites archiving) illustrated the need for improved versioning capabilities,
 as current approaches have scalability issues at Web-scale.
 They either perform well for versioned query evaluation—at the cost of large storage space requirements—or
-require less storage space—at the cost of slower query evaluation.
+require less storage space—at the cost of slower querying.
 Furthermore, no existing solution performs well for all existing versioned query types.
-An efficient RDF archive solution should have a scalable *storage model*,
+An RDF archive solution should have a scalable *storage model*,
 efficient *compression*, and *indexing methods* that enable expressive versioned querying [](cite:cites archiving).
 
 In this article,
