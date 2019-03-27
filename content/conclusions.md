@@ -15,5 +15,5 @@ and supporting dynamic snapshot creation.
 Furthermore, branching and merging of different version chains can be investigated.
 
 Our approach succeeds in reducing the cost for publishing RDF archives on the Web.
-This lowers the barrier towards intelligent clients in the [Semantic Web](cite:cites semanticweb) that require *evolving* data,
+This lowers the barrier towards intelligent clients in the Semantic Web that require *evolving* data,
 with the goal of time-sensitive querying over the ever-evolving Web of data.

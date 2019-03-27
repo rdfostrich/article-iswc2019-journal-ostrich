@@ -6,7 +6,7 @@ there is an ongoing need for maintaining the history of datasets.
 Such archives can be used for looking up data at certain points in time,
 for requesting evolving changes,
 or for checking the temporal validity of these data [](cite:cites archiving).
-While the [RDF](cite:cites spec:rdf) data model itself is atemporal,
+While the RDF data model itself is atemporal,
 Linked Datasets typically [change over time](cite:cites datasetdynamics) on
 [dataset, schema, and/or instance level](cite:cites diachronql).
 Such changes can include additions,
