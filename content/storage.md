@@ -47,4 +47,4 @@ This position information serves two purposes:
 1) it allows the querying algorithm to exploit offset capabilities of the snapshot store
 to resolve offsets for any triple pattern against any version;
 and 2) it allows deletion counts for any triple pattern and version to be determined efficiently.
-The use of the relative position and the local change flag during querying will be further explained in [](#querying).
+The use of the relative position during querying will be further explained in [](#querying).
