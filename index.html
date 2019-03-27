@@ -12,7 +12,7 @@
   <header>
   <h1 id="triple-storage-for-random-accessbr-versioned-querying-of-rdf-archives">Triple Storage for Random-Access<br />Versioned Querying of RDF Archives</h1>
 
-  <h3 id="short-version">Short Version</h3>
+  <h3 id="short-version-of-article-in-journal-of-web-semantics">Short version of article in Journal of Web Semantics</h3>
 
   <ul id="authors">
     <li><a href="http://www.rubensworks.net/" typeof="http://xmlns.com/foaf/0.1/Person" resource="http://www.rubensworks.net/#me">Ruben Taelman</a></li>
@@ -40,35 +40,392 @@
   <section id="abstract">
     <h2>Abstract</h2>
     <!-- Context      -->
-    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+    <p>Next to their latest version, Linked Open Datasets on the Web
+can also contain useful information in or between previous versions.
 <!-- Need         -->
-Vestibulum finibus dignissim augue, id pellentesque est facilisis non.
+In order to exploit this information,
+we can maintain history in RDF archives.
+Existing approaches either require much storage space,
+or they do not meet sufficiently expressive querying demands.
 <!-- Task         -->
-Donec fringilla dolor non neque iaculis blandit.
+In this extended abstract, we discuss an RDF archive indexing technique
+that has a low storage overhead, and adds metadata for reducing lookup times.
 <!-- Object       -->
-Praesent aliquet eleifend iaculis.
+We introduce algorithms based on this technique for efficiently evaluating versioned queries.
+Using the BEAR RDF archiving benchmark,
+we evaluate our implementation, called OSTRICH.
 <!-- Findings     -->
-Quisque pellentesque at odio ac bibendum.
+Results show that OSTRICH introduces a new trade-off regarding storage space, ingestion time, and querying efficiency.
+By processing and storing more metadata during ingestion time,
+it significantly lowers the average lookup time for versioning queries.
 <!-- Conclusion   -->
-Pellentesque imperdiet felis urna, quis facilisis lacus gravida non.
+Our storage technique reduces query evaluation time
+through a preprocessing step during ingestion,
+which only in some cases increases storage space when compared to other approaches.
+This allows data owners to store and query multiple versions of their dataset efficiently,
 <!-- Perspectives -->
-Donec quis lectus eget sem tempor tristique pellentesque in dolor.</p>
+lowering the barrier to historical dataset publication and analysis.</p>
 
   </section>
 
 </header>
 
 <main>
-  <!-- Add sections by specifying their file name, excluding the '.md' suffix. -->
   <section id="introduction">
     <h2>Introduction</h2>
 
-    <p>This is a great article on the Semantic Web <span class="references">[<a href="#ref-1">1</a>]</span>, written in Markdown.</p>
+    <p>In the area of data analysis,
+there is an ongoing need for maintaining the history of datasets.
+Such archives can be used for looking up data at certain points in time,
+for requesting evolving changes,
+or for checking the temporal validity of these data <span class="references">[<a href="#ref-1">1</a>]</span>.
+While the RDF data model itself is atemporal,
+Linked Datasets typically change over time <span class="references">[<a href="#ref-2">2</a>]</span> on
+dataset, schema, and/or instance level <span class="references">[<a href="#ref-3">3</a>]</span>.
+Such changes can include additions,
+modifications, or deletions of complete datasets, ontologies, and separate facts.
+While some evolving datasets, such as DBpedia <span class="references">[<a href="#ref-4">4</a>]</span>,
+are published as separate dumps per version,
+more direct and efficient access to prior versions is desired.</p>
 
-    <p>Make sure to <a href="http://www.treesmapsandtheorems.com/pdfs/TM&amp;Th-2.0-summary.pdf">write your document effectively</a>!</p>
+    <p>In 2015, <a property="schema:citation http://purl.org/spar/cito/cites" href="http://ceur-ws.org/Vol-1377/paper6.pdf">a survey on archiving Linked Open Data</a> <span class="references">[<a href="#ref-1">1</a>]</span> illustrated the need for improved versioning capabilities,
+as current approaches have scalability issues at Web-scale.
+They either perform well for versioned query evaluation—at the cost of large storage space requirements—or
+require less storage space—at the cost of slower querying.
+Furthermore, no existing solution performs well for all existing versioned query types.
+An RDF archive solution should have a scalable <em>storage model</em>,
+efficient <em>compression</em>, and <em>indexing methods</em> that enable expressive versioned querying <span class="references">[<a href="#ref-1">1</a>]</span>.</p>
 
-    <p class="todo">Write proper introduction.
-More information on snippets like this can be found on the <a href="https://github.com/rubensworks/ScholarMarkdown/wiki/Snippets">ScholarMarkdown wiki</a>.</p>
+    <p>In this article,
+we argue that supporting both RDF archiving and SPARQL at once is difficult to scale due to their combined complexity.
+Instead, we propose an elementary but efficient versioned <em>triple pattern</em> index that can be used as a basis for query engines.
+We focus on the performance-critical features of <em>stream-based results</em>, query result <em>offsets</em>, and <em>cardinality estimation</em>,
+which allow more memory-efficient processing and more efficient <span property="schema:citation http://purl.org/spar/cito/cites" resource="https://dx.doi.org/doi:10.1016/j.websem.2016.03.003"><a href="http://linkeddatafragments.org/publications/jws2016.pdf">query planning</a></span> <span class="references">[<a href="#ref-5">5</a>, <a href="#ref-6">6</a>]</span>.
+We offer an open-source implementation of this approach, called OSTRICH,
+which we evaluate using an existing RDF archiving benchmark.</p>
+
+    <p>This article is structured as follows.
+In the following section, we start by introducing the related work in <a href="#related-work">Section 2</a>.
+Next, we introduce our storage approach in <a href="#storage">Section 3</a>,
+and our querying algorithms in <a href="#querying">Section 4</a>.
+After that, we present and discuss the evaluation of our implementation in <a href="#evaluation">Section 5</a>.
+Finally, we present our conclusions in <a href="#conclusions">Section 6</a>.</p>
+
+  </section>
+
+  <section id="related-work">
+    <h2>Related Work</h2>
+
+    <p>In this section, we discuss existing solutions and techniques for indexing and compression in RDF storage, without archiving support.
+Then, we compare different RDF archiving solutions.
+Finally, we discuss suitable benchmarks and different query types for RDF archives.
+This section does not contain an exhaustive list of all relevant solutions and techniques,
+instead, only those that are most relevant to this work are mentioned.</p>
+
+    <h3 id="general-rdf-indexing-and-compression">General RDF Indexing and Compression</h3>
+
+    <p>RDF storage systems typically use indexing and compression techniques
+for reducing query times and storage space.</p>
+
+    <p>RDF-3X <span class="references">[<a href="#ref-6">6</a>]</span> is an RDF storage technique that is based
+on a clustered B+Tree with 18 indexes in which triples are sorted lexicographically.
+These indexes correspond to different triple component orders.
+A dictionary is used to compress common triple components.
+When evaluating SPARQL queries, optimal indexes can be selected based on the query’s triple patterns.
+In our storage approach, we will reuse the concept of multiple indexes
+and encoding triple components in a dictionary.</p>
+
+    <p><a property="schema:citation http://purl.org/spar/cito/cites" href="http://www.websemanticsjournal.org/index.php/ps/article/view/328">HDT</a> <span class="references">[<a href="#ref-7">7</a>]</span> is a binary RDF representation that is highly compressed
+and provides indexing structures that enable efficient querying.
+Furthermore, it also uses a dictionary to reduce storage requirements.
+HDT archives are read-only, which leads to high efficiency and compressibility,
+but makes them unsuitable for cases where datasets change frequently.
+Because of these reasons, we will reuse HDT snapshots as part of our storage solution.</p>
+
+    <h3 id="related-work-archiving">RDF Archiving</h3>
+
+    <p>Fernández et al. formally define an <a property="schema:citation http://purl.org/spar/cito/cites" href="http://semantic-web-journal.org/system/files/swj1814.pdf"><em>RDF archive</em></a> <span class="references">[<a href="#ref-8">8</a>]</span> as follows:
+<em>An RDF archive graph A is a set of version-annotated triples.</em>
+Where a <em>version-annotated triple</em> is defined as <em>an RDF triple with a label representing the version in which this triple holds.</em>
+Furthermore,
+<em>an RDF version of an RDF archive is the set of triples that exist at a given version in the archive.</em></p>
+
+    <p>Systems for archiving Linked Open Data are categorized 
+into <a property="schema:citation http://purl.org/spar/cito/cites" href="http://ceur-ws.org/Vol-1377/paper6.pdf">three storage strategies</a> <span class="references">[<a href="#ref-1">1</a>]</span>:</p>
+
+    <ul>
+      <li>The <strong>Independent Copies (IC)</strong> approach creates separate instantiations of datasets for
+each change or set of changes. Example: SemVersion <span class="references">[<a href="#ref-9">9</a>]</span></li>
+      <li>The <strong>Change-Based (CB)</strong> approach instead only stores change sets between versions. Example: R&amp;WBase <span class="references">[<a href="#ref-10">10</a>]</span></li>
+      <li>The <strong>Timestamp-Based (TB)</strong> approach stores the temporal validity of facts. Example: X-RDF-3X <span class="references">[<a href="#ref-11">11</a>]</span></li>
+    </ul>
+
+    <p>These storage strategies can also be combined into <em>hybrid approaches</em>,
+such as TailR <span class="references">[<a href="#ref-12">12</a>]</span> that combines the CB and IC approaches.</p>
+
+    <h3 id="related-work-benchmarks">RDF Archiving Benchmarks</h3>
+
+    <p><a property="schema:citation http://purl.org/spar/cito/cites" href="http://semantic-web-journal.org/system/files/swj1814.pdf">BEAR</a> <span class="references">[<a href="#ref-8">8</a>]</span> is a benchmark for RDF archive systems.
+It offers three different categories of datasets with varying dataset sizes and temporal granularity.
+Next to that, triple pattern queries for different versioned query types are provided.
+BEAR provides baseline RDF archive implementations based on <a property="schema:citation http://purl.org/spar/cito/cites" href="http://www.websemanticsjournal.org/index.php/ps/article/view/328">HDT</a> <span class="references">[<a href="#ref-7">7</a>]</span> and
+Jena’s <span class="references">[<a href="#ref-13">13</a>]</span> <a href="https://jena.apache.org/documentation/tdb/">TDB store</a>
+for the IC, CB, and TB approaches, but also hybrid IC/CB and TB/CB approaches.
+We use this benchmark for evaluation our approach.</p>
+
+    <h3 id="query-atoms">Query atoms</h3>
+
+    <p>To cover the retrieval demands in RDF archiving,
+<a property="schema:citation http://purl.org/spar/cito/cites" href="http://semantic-web-journal.org/system/files/swj1814.pdf">three foundational query types were introduced</a> <span class="references">[<a href="#ref-8">8</a>]</span>,
+which are referred to as <em>query atoms</em>:</p>
+
+    <ol>
+      <li><strong>Version materialization (VM)</strong> retrieves data using a query targeted at a single version.
+Example: <em>Which books were present in the library yesterday?</em></li>
+      <li><strong>Delta materialization (DM)</strong> retrieves a query’s result change sets between two versions.
+Example: <em>Which books were returned or taken from the library between yesterday and now?</em></li>
+      <li><strong>Version query (VQ)</strong> annotates a query’s results with the versions (of RDF archive A) in which they are valid.
+Example: <em>At what times was book X present in the library?</em></li>
+    </ol>
+
+    <p>Typically, VM queries are efficient in storage solutions that are based on IC,
+DM queries are efficient in CB solutions,
+and VQ queries perform well for TB solutions.
+On the other hand, these query types typically perform sub-optimal for other approaches.
+With our solution, we aim to make all query types sufficiently efficient.</p>
+
+  </section>
+
+  <section id="storage">
+    <h2>Hybrid Multiversion Storage Approach</h2>
+
+    <p>In order to achieve evaluate all query types efficiently,
+we introduce a hybrid IC/CB/TB storage solution.
+Our approach consists of an initial dataset snapshot—stored in <a property="schema:citation http://purl.org/spar/cito/cites" href="http://www.websemanticsjournal.org/index.php/ps/article/view/328">HDT</a> <span class="references">[<a href="#ref-7">7</a>]</span>—followed by a delta chain.
+The delta chain uses multiple compressed B+Trees for a TB-storage strategy (similar to X-RDF-3X <span class="references">[<a href="#ref-11">11</a>]</span>),
+applies dictionary-encoding to triples, and
+stores additional metadata to improve lookup times.</p>
+
+    <p>Our storage technique is partially based on a hybrid IC/CB approach similar
+to the approach followed by TailR <span class="references">[<a href="#ref-12">12</a>]</span>.
+This approach starts by a snapshot, and stores changes as deltas that are related to each other
+as can be seen in <a href="#regular-delta-chain">Fig. 1</a>.
+In order to avoid increasing reconstruction times,
+we construct the delta chain in an aggregated deltas <span class="references">[<a href="#ref-14">14</a>]</span> fashion:
+each delta is <em>independent</em> of a preceding delta and relative to the closest preceding snapshot in the chain, as shown in <a href="#alternative-delta-chain">Fig. 2</a>.
+Hence, for any version, reconstruction in our approach only requires at most one delta and one snapshot,
+as opposed to the whole delta chain as needed for approaches like TailR.</p>
+
+    <figure id="regular-delta-chain">
+<img src="img/regular-delta-chain.svg" alt="[alternative delta chain]" class="plot-delta" />
+<figcaption>
+        <p><span class="label">Fig. 1:</span> Delta chain in which deltas are relative to the previous delta or snapshot, as done by TailR <span class="references">[<a href="#ref-12">12</a>]</span>.</p>
+      </figcaption>
+</figure>
+
+    <figure id="alternative-delta-chain">
+<img src="img/alternative-delta-chain.svg" alt="[alternative delta chain]" class="plot-delta" />
+<figcaption>
+        <p><span class="label">Fig. 2:</span> Delta chain in which deltas are relative to the snapshot at the start of the chain, as part of our approach.</p>
+      </figcaption>
+</figure>
+
+    <p>In order to cope with the newly introduced redundancies in our delta chain structure,
+we introduce a delta storage method similar to the TB storage strategy,
+which is able to compress redundancies within consecutive deltas.
+In contrast to a regular TB approach, which stores plain timestamped triples,
+we store timestamped triples in a separate store for additions and deletions.
+Each addition and deletion store uses three B+trees with a different triple component order (SPO, POS and OSP)
+to improve lookup efficiency when querying.</p>
+
+    <p>For deletions specifically, we also store the <em>relative position</em> of each triple
+inside the delta to the deletion trees.
+When querying, this speeds up the process of patching a snapshot’s triple pattern subset for any given offset.
+This position information serves two purposes:
+1) it allows the querying algorithm to exploit offset capabilities of the snapshot store
+to resolve offsets for any triple pattern against any version;
+and 2) it allows deletion counts for any triple pattern and version to be determined efficiently.
+The use of the relative position during querying will be further explained in <a href="#querying">Section 4</a>.</p>
+
+  </section>
+
+  <section id="querying">
+    <h2>Versioned Query Algorithms</h2>
+
+    <p>In this section, we introduce algorithms for performing VM, DM and VQ triple pattern queries
+based on the storage structure introduced in <a href="#storage">Section 3</a>.
+Each of these querying algorithms are based on result streams, enabling efficient offsets and limits,
+by exploiting the index structure from <a href="#storage">Section 3</a>.</p>
+
+    <h3 id="version-materialization">Version Materialization</h3>
+
+    <p>Version Materialization (VM) is the most straightforward versioned query type,
+it allows you to query against a certain dataset version.
+Our algorithm takes a triple pattern, a version, and a numerical offset as input,
+and returns a triple stream as output.</p>
+
+    <p>Starting from the initial snapshot, it does a sort-merge join of the deletions stream for the given version.
+At the end of the stream, all additions for the given version are appended.
+In order to apply the proper offset to the stream,
+we iteratively jump to the correct position in the snapshot and deletions streams
+based on the relative position that was stored as metadata in each triple.</p>
+
+    <h3 id="delta-materialization">Delta Materialization</h3>
+
+    <p>The goal of delta materialization (DM) queries is to query the triple differences between two versions.
+Furthermore, each triple in the result stream is annotated with either being an addition or deletion between the given version range.
+Within the scope of this work, we limit ourselves to delta materialization within a single snapshot and delta chain.
+Because of this, we distinguish between two different cases for our DM algorithm
+in which we can query triple patterns between a start and end version,
+the start version of the query can either correspond to the snapshot version or it can come after that.</p>
+
+    <p>For the first query case, where the start version corresponds to the snapshot version,
+the algorithm is straightforward.
+Since we always store our deltas relative to the snapshot,
+filtering the delta of the given end version based on the given triple pattern directly corresponds to the desired result stream.
+Furthermore, we filter out local changes, as we are only interested in actual change with respect to the snapshot.</p>
+
+    <p>For the second case, the start version does not correspond to the snapshot version.
+The algorithm iterates over the triple pattern iteration scope of the addition and deletion trees in a sort-merge join-like operation,
+and only emits the triples that have a different addition/deletion flag for the two versions.</p>
+
+    <h3 id="version-query">Version Query</h3>
+
+    <p>For version querying (VQ), the final query atom, we have to retrieve all triples across all versions,
+annotated with the versions in which they exist.
+In this work, we again focus on version queries for a single snapshot and delta chain.
+For multiple snapshots and delta chains, the following algorithms can simply be applied once for each snapshot and delta chain.</p>
+
+    <p>Our version querying algorithm is again based on a sort-merge join-like operation.
+We start by iterating over the snapshot for the given triple pattern.
+Each snapshot triple is queried within the deletion tree.
+If such a deletion value can be found, the versions annotation contains all versions except for the versions
+for which the given triple was deleted with respect to the given snapshot.
+If no such deletion value was found, the triple was never deleted,
+so the versions annotation simply contains all versions of the store.
+Result stream offsetting can happen efficiently as long as the snapshot allows efficient offsets.
+When the snapshot iterator is finished, we iterate over the addition tree in a similar way.
+Each addition triple is again queried within the deletions tree
+and the versions annotation can equivalently be derived.</p>
+
+  </section>
+
+  <section id="evaluation">
+    <h2>Evaluation</h2>
+
+    <p>In this section, we evaluate our proposed storage technique and querying algorithms.
+We start by introducing OSTRICH, an implementation of our proposed solution.
+After that, we describe the setup of our experiments, followed by presenting our results.
+Finally, we discuss these results.</p>
+
+    <h3 id="implementation">Implementation</h3>
+
+    <p>OSTRICH stands for <em>Offset-enabled STore for TRIple CHangesets</em>,
+and it is a software implementation of the storage and querying techniques described in this article
+It is implemented in C/C++ and available on <a href="https://zenodo.org/record/883008" class="mandatory" data-link-text="https:/​/​zenodo.org/​record/​883008">GitHub</a> under an open license.
+In the scope of this work, OSTRICH currently supports a single snapshot and delta chain.
+OSTRICH uses <a property="schema:citation http://purl.org/spar/cito/cites" href="http://www.websemanticsjournal.org/index.php/ps/article/view/328">HDT</a> <span class="references">[<a href="#ref-7">7</a>]</span> as snapshot technology.
+Furthermore, for our indexes we use <a href="http://fallabs.com/kyotocabinet/" class="mandatory" data-link-text="http:/​/​fallabs.com/​kyotocabinet/​">Kyoto Cabinet</a>,
+which provides a highly efficient memory-mapped B+Tree implementation with compression support.
+For our dictionary, we use and extend HDT’s dictionary implementation.
+We compress this delta dictionary with <a href="http://www.gzip.org/">gzip</a>, which requires decompression during querying and ingestion.</p>
+
+    <p>We provide a developer-friendly C/C++ API for ingesting and querying data based on an OSTRICH store.
+Additionally, we provide command-line tools for ingesting data into an OSTRICH store,
+or evaluating VM, DM or VQ triple pattern queries for any given limit and offset against a store.
+Furthermore, we implemented <a href="https://zenodo.org/record/883010" class="mandatory" data-link-text="https:/​/​zenodo.org/​record/​883010">Node JavaScript bindings</a> that
+expose the OSTRICH API for ingesting and querying to JavaScript applications such as <a property="schema:citation http://purl.org/spar/cito/cites" href="https://comunica.github.io/Article-ISWC2018-Resource/">Comunica</a> <span class="references">[<a href="#ref-15">15</a>]</span>.
+We used these bindings to <a href="http://versioned.linkeddatafragments.org/bear" class="mandatory" data-link-text="http:/​/​versioned.linkeddatafragments.org/​bear">expose an OSTRICH store</a>
+containing a dataset with 30M triples in 10 versions using <span property="schema:citation http://purl.org/spar/cito/cites" resource="https://dx.doi.org/doi:10.1016/j.websem.2016.03.003"><a href="http://linkeddatafragments.org/publications/jws2016.pdf">TPF</a></span> <span class="references">[<a href="#ref-5">5</a>]</span>, with the <a property="schema:citation http://purl.org/spar/cito/cites" href="http://rubensworks.net/raw/publications/2017/vtpf.pdf">VTPF feature</a> <span class="references">[<a href="#ref-16">16</a>]</span>.</p>
+
+    <h3 id="experimental-setup">Experimental Setup</h3>
+
+    <p>As mentioned before in <a href="#related-work">Section 2</a>, we evaluate our approach using the BEAR benchmark.
+For a complete comparison with other approaches, we re-evaluated BEAR’s Jena and HDT-based RDF archive implementations.
+After that, we evaluated OSTRICH for the same queries and datasets.
+We were not able to extend this benchmark with other similar systems such as X-RDF-3X, RDF-TX and Dydra,
+because the source code of systems was either not publicly available,
+or the system would require additional implementation work to support the required query interfaces.
+Our experiments were executed on a 64-bit
+Ubuntu 14.04 machine with 128 GB of memory and a
+24-core 2.40 GHz CPU.</p>
+
+    <h3 id="results">Results</h3>
+
+    <p>In this section, we present the results of our evaluation.
+We report the ingestion results, compressibility, query evaluation times for all cases and offset result.
+All raw results and the scripts that were used to process them are available on <a href="https://github.com/rdfostrich/ostrich-bear-results/" class="mandatory" data-link-text="https:/​/​github.com/​rdfostrich/​ostrich-​bear-​results/​">GitHub</a>.</p>
+
+    <p>Figures <a href="#results-bearb-hourly-vm-sumary">3</a>, <a href="#results-bearb-hourly-dm-summary">4</a> and <a href="#results-hourly-daily-vq-summary">5</a>
+show the query duration results for the BEAR-B queries on the complete BEAR-B-hourly dataset for all approaches.
+OSTRICH again outperforms Jena-based approaches in all cases.
+HDT-IC is faster for VM queries than OSTRICH, but HDT-CB is significantly slower, except for the first 100 versions.
+For DM queries, OSTRICH is comparable to HDT-IC, and faster than HDT-CB, except for the first 100 versions.
+Finally, OSTRICH outperforms all HDT-based approaches for VQ queries by almost an order of magnitude.</p>
+
+    <figure id="results-bearb-hourly-vm-sumary">
+<img src="img/query/results_bearb-hourly-vm-summary.svg" alt="[bear-b-hourly vm]" class="plot-graph" />
+<figcaption>
+        <p><span class="label">Fig. 3:</span> Median BEAR-B-hourly VM query results for all triple patterns for all versions.</p>
+      </figcaption>
+</figure>
+
+    <figure id="results-bearb-hourly-dm-summary">
+<img src="img/query/results_bearb-hourly-dm-summary.svg" alt="[bear-b-hourly dm]" class="plot-graph" />
+<figcaption>
+        <p><span class="label">Fig. 4:</span> Median BEAR-B-hourly DM query results for all triple patterns from version 0 to all other versions.</p>
+      </figcaption>
+</figure>
+
+    <figure id="results-bearb-hourly-vq-summary">
+<img src="img/query/results_bearb-hourly-vq-summary.svg" alt="[bear-b-hourly vq]" class="plot-graph" />
+<figcaption>
+        <p><span class="label">Fig. 5:</span> Median BEAR-B-hourly VQ query results for all triple patterns.</p>
+      </figcaption>
+</figure>
+
+    <h3 id="discussion">Discussion</h3>
+
+    <p>The results from previous section show that the OSTRICH query evaluation efficiency is faster than all Jena-based approaches,
+mostly faster than HDT-CB, and mostly slower than HDT-IC.
+VM queries in OSTRICH are always slower than HDT-IC,
+because HDT can very efficiently query a single materialized snapshot in this case,
+while OSTRICH requires more operations for materializing.
+VM queries in OSTRICH are however always faster than HDT-CB, because the latter has to reconstruct complete delta chains,
+while OSTRICH only has to reconstruct a single delta relative to the snapshot.
+For DM queries, OSTRICH is slower or comparable to HDT-IC, slower than HDT-CB for early versions, but faster for later versions.
+This slowing down of HDT-CB for DM queries is again caused by reconstruction of delta chains.
+For VQ queries, OSTRICH outperforms all other approaches for datasets with larger amounts of versions.
+For BEAR-A, which contains only 10 versions in our case,
+the HDT-based approaches are slightly faster because only a small amount of versions need to be iterated.</p>
+
+  </section>
+
+  <section id="conclusions">
+    <h2>Conclusions</h2>
+
+    <p>In this article, we introduced an RDF archive storage method with accompanied algorithms
+for evaluating versioned queries, with efficient result offsets.
+By storing additional data during ingestion, we achieve a significant query efficiency improvement.</p>
+
+    <p>With OSTRICH, we provide a technique for publishing and querying RDF archives at Web-scale.
+And with lookup times of 1ms or less in most cases, OSTRICH is an ideal candidate for Web querying,
+as the network latency will typically be higher than that.
+At the cost of increased ingestion times, lookups are fast.
+Several opportunities exist for advancing this technique in future work,
+such as improving the ingestion efficiency, increasing the DM offset efficiency,
+and supporting dynamic snapshot creation.
+Furthermore, branching and merging of different version can be investigated.</p>
+
+    <p>Our approach succeeds in reducing the cost of publishing RDF archives on the Web.
+It lowers the barrier towards intelligent clients that require <em>evolving</em> data,
+with the goal of time-sensitive querying over the ever-evolving Web of data.</p>
+
+    <div class="printonly">
+<br />
+<br />
+<br />
+</div>
 
   </section>
 
@@ -78,7 +435,37 @@ More information on snippets like this can be found on the <a href="https://gith
 <h2>References</h2>
 <dl class="references">
   <dt id="ref-1">[1]</dt>
-  <dd resource="#semanticweb" typeof="schema:Article">Berners-Lee, T., Hendler, J., Lassila, O., others: The semantic web. Scientific American. 284, 28–37 (2001).</dd>
+  <dd resource="http://ceur-ws.org/Vol-1377/paper6.pdf" typeof="schema:Article">Fernández, J.D., Polleres, A., Umbrich, J.: Towards efficient archiving of Dynamic Linked Open Data. In: Proceedings of the First DIACHRON Workshop on Managing the Evolution and Preservation of the Data Web</dd>
+  <dt id="ref-2">[2]</dt>
+  <dd resource="#datasetdynamics" typeof="schema:Article">Umbrich, J., Decker, S., Hausenblas, M., Polleres, A., Hogan, A.: Towards dataset dynamics: Change frequency of Linked Open Data sources. 3rd International Workshop on Linked Data on the Web (LDOW). (2010).</dd>
+  <dt id="ref-3">[3]</dt>
+  <dd resource="#diachronql" typeof="schema:Article">Meimaris, M., Papastefanatos, G., Viglas, S., Stavrakas, Y., Pateritsas, C., Anagnostopoulos, I.: A Query Language for Multi-version Data Web Archives. Expert Systems. 33, 383–404 (2016).</dd>
+  <dt id="ref-4">[4]</dt>
+  <dd resource="#dbpedia" typeof="schema:Chapter">Auer, S., Bizer, C., Kobilarov, G., Lehmann, J., Cyganiak, R., Ives, Z.: DBpedia: A nucleus for a Web of open data. In: The semantic web</dd>
+  <dt id="ref-5">[5]</dt>
+  <dd resource="https://dx.doi.org/doi:10.1016/j.websem.2016.03.003" typeof="schema:Article">Verborgh, R., Vander Sande, M., Hartig, O., Van Herwegen, J., De Vocht, L., De Meester, B., Haesendonck, G., Colpaert, P.: Triple Pattern Fragments: a Low-cost Knowledge Graph Interface for the Web. Journal of Web Semantics. (2016).</dd>
+  <dt id="ref-6">[6]</dt>
+  <dd resource="#rdf3x" typeof="schema:Article">Neumann, T., Weikum, G.: RDF-3X: a RISC-style engine for RDF. Proceedings of the VLDB Endowment. 1, 647–659 (2008).</dd>
+  <dt id="ref-7">[7]</dt>
+  <dd resource="http://www.websemanticsjournal.org/index.php/ps/article/view/328" typeof="schema:Article">Fernández, J.D., Martínez-Prieto, M.A., Gutiérrez, C., Polleres, A., Arias, M.: Binary RDF Representation for Publication and Exchange (HDT). Web Semantics: Science, Services and Agents on the World Wide Web. 19, 22–41 (2013).</dd>
+  <dt id="ref-8">[8]</dt>
+  <dd resource="http://semantic-web-journal.org/system/files/swj1814.pdf" typeof="schema:Article">Fernández, J.D., Umbrich, J., Polleres, A., Knuth, M.: Evaluating Query and Storage Strategies for RDF Archives. Semantic Web Journal. (2018).</dd>
+  <dt id="ref-9">[9]</dt>
+  <dd resource="#semversion" typeof="schema:Article">Volkel, M., Winkler, W., Sure, Y., Kruk, S.R., Synak, M.: Semversion: A versioning system for RDF and ontologies. In: Second European Semantic Web Conference May 29–June 1, 2005 (2005).</dd>
+  <dt id="ref-10">[10]</dt>
+  <dd resource="#rwbase" typeof="schema:Article">Vander Sande, M., Colpaert, P., Verborgh, R., Coppens, S., Mannens, E., Van de Walle, R.: R&amp;Wbase: git for triples. In: Proceedings of the 6th Workshop on Linked Data on the Web (2013).</dd>
+  <dt id="ref-11">[11]</dt>
+  <dd resource="#xrdf3x" typeof="schema:Article">Neumann, T., Weikum, G.: x-RDF-3X: fast querying, high update rates, and consistency for RDF databases. Proceedings of the VLDB Endowment.</dd>
+  <dt id="ref-12">[12]</dt>
+  <dd resource="#tailr" typeof="schema:Article">Meinhardt, P., Knuth, M., Sack, H.: TailR: a platform for preserving history on the web of data. In: Proceedings of the 11th International Conference on Semantic Systems. pp. 57–64. ACM (2015).</dd>
+  <dt id="ref-13">[13]</dt>
+  <dd resource="#jena" typeof="schema:Article">McBride, B.: Jena: A semantic web toolkit. IEEE Internet computing. 6, (2002).</dd>
+  <dt id="ref-14">[14]</dt>
+  <dd resource="#vmrdf" typeof="schema:Article">Im, D.-H., Lee, S.-W., Kim, H.-J.: A version management framework for RDF triple stores. International Journal of Software Engineering and Knowledge Engineering. 22, 85–106 (2012).</dd>
+  <dt id="ref-15">[15]</dt>
+  <dd resource="https://comunica.github.io/Article-ISWC2018-Resource/" typeof="schema:Article">Taelman, R., Van Herwegen, J., Vander Sande, M., Verborgh, R.: Comunica: a Modular SPARQL Query Engine for the Web. In: Proceedings of the 17th International Semantic Web Conference (2018).</dd>
+  <dt id="ref-16">[16]</dt>
+  <dd resource="http://rubensworks.net/raw/publications/2017/vtpf.pdf" typeof="schema:Article">Taelman, R., Vander Sande, M., Verborgh, R., Mannens, E.: Versioned Triple Pattern Fragments: A Low-cost Linked Data Interface Feature for Web Archives. In: Proceedings of the 3rd Workshop on Managing the Evolution and Preservation of the Data Web (2017).</dd>
 </dl>
 </section>
 </footer>
