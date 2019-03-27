@@ -1,15 +1,27 @@
 ## Abstract
 <!-- Context      -->
-Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+Next to their latest version, Linked Open Datasets on the Web
+can also contain useful information in or between previous versions.
 <!-- Need         -->
-Vestibulum finibus dignissim augue, id pellentesque est facilisis non.
+In order to exploit this information,
+we can maintain history in RDF archives.
+Existing approaches either require much storage space,
+or they do not meet sufficiently expressive querying demands.
 <!-- Task         -->
-Donec fringilla dolor non neque iaculis blandit.
+In this extended abstract, we discuss an RDF archive indexing technique
+that has a low storage overhead, and adds metadata for reducing lookup times.
 <!-- Object       -->
-Praesent aliquet eleifend iaculis.
+We introduce algorithms based on this technique for efficiently evaluating versioned queries.
+Using the BEAR RDF archiving benchmark,
+we evaluate our implementation, called OSTRICH.
 <!-- Findings     -->
-Quisque pellentesque at odio ac bibendum.
+Results show that OSTRICH introduces a new trade-off regarding storage space, ingestion time, and querying efficiency.
+By processing and storing more metadata during ingestion time,
+it significantly lowers the average lookup time for versioning queries.
 <!-- Conclusion   -->
-Pellentesque imperdiet felis urna, quis facilisis lacus gravida non.
+Our storage technique reduces query evaluation time
+through a preprocessing step during ingestion,
+which only in some cases increases storage space when compared to other approaches.
+This allows data owners to store and query multiple versions of their dataset efficiently,
 <!-- Perspectives -->
-Donec quis lectus eget sem tempor tristique pellentesque in dolor.
+lowering the barrier to historical dataset publication and analysis.
