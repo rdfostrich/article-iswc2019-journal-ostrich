@@ -1,0 +1,15 @@
+Attached is an extended abstract of the article "Triple Storage for Random-Access Versioned Querying of RDF Archives"
+that was published in the Special Issue on Managing the Evolution and Preservation of the Data Web (2018) in the Journal of Web Semantics.
+
+I declare that our contributions and all its experimental results
+have not been presented at any Semantic Web-related conference.
+
+Original authors:
+* Ruben Taelman: ruben.taelman@ugent.be
+* Miel Vander Sande: miel.vandersande@ugent.be
+* Joachim Van Herwegen: joachim.vanherwegen@ugent.be
+* Erik Mannens: erik.mannens@ugent.be
+* Ruben Verborgh: ruben.verborgh@ugent.be
+
+Citation:
+Taelman, Ruben, et al. "Triple storage for random-access versioned querying of RDF archives." Journal of Web Semantics 54 (2019): 4-28.
