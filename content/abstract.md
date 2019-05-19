@@ -1,6 +1,6 @@
 ## Abstract
 <!-- Context      -->
-Next to their latest version, Linked Open Datasets on the Web
+In addition to their latest version, Linked Open Datasets on the Web
 can also contain useful information in or between previous versions.
 <!-- Need         -->
 In order to exploit this information,
