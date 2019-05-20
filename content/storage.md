@@ -37,11 +37,11 @@ we introduce a delta storage method similar to the TB storage strategy,
 which is able to compress redundancies within consecutive deltas.
 In contrast to a regular TB approach, which stores plain timestamped triples,
 we store timestamped triples in a separate store for additions and deletions.
-Each addition and deletion store uses three B+trees with a different triple component order (SPO, POS and OSP)
+Each addition and deletion store uses three B+tree indexes with a different triple component order (SPO, POS and OSP)
 to improve lookup efficiency when querying.
 
 For deletions specifically, we also store the _relative position_ of each triple
-inside the delta to the deletion trees.
+inside the delta to the deletion stores.
 When querying, this speeds up the process of patching a snapshot's triple pattern subset for any given offset.
 This position information serves two purposes:
 1) it allows the querying algorithm to exploit offset capabilities of the snapshot store
