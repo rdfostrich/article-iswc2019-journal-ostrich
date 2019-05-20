@@ -1,9 +1,9 @@
 ## Hybrid Multiversion Storage Approach
 {:#storage}
 
-In order to achieve evaluate all query types efficiently,
+In order to efficiently evaluate all query types,
 we introduce a hybrid IC/CB/TB storage solution.
-Our approach consists of an initial dataset snapshot---stored in [HDT](cite:cites hdt)---followed by a delta chain.
+Our approach consists of an _initial dataset snapshot_---stored in [HDT](cite:cites hdt)---followed by a _delta chain_.
 The delta chain uses multiple compressed B+Trees for a TB-storage strategy (similar to [X-RDF-3X](cite:cites xrdf3x)),
 applies dictionary-encoding to triples, and
 stores additional metadata to improve lookup times.

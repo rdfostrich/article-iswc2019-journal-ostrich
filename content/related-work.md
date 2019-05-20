@@ -71,8 +71,8 @@ Example: _Which books were returned or taken from the library between yesterday 
 3. **Version query (VQ)** annotates a query's results with the versions (of RDF archive A) in which they are valid.
 Example: _At what times was book X present in the library?_
 
-Typically, VM queries are efficient in storage solutions that are based on IC,
+Typically, VM queries are efficient in storage solutions based on IC.
 DM queries are efficient in CB solutions,
-and VQ queries perform well for TB solutions.
-On the other hand, these query types typically perform sub-optimal for other approaches.
+and VQ queries perform well in TB solutions.
+However, these query types typically perform sub-optimally in the other approaches.
 With our solution, we aim to make all query types sufficiently efficient.

@@ -5,6 +5,7 @@ In this section, we introduce algorithms for performing VM, DM and VQ triple pat
 based on the storage structure introduced in [](#storage).
 Each of these querying algorithms are based on result streams, enabling efficient offsets and limits,
 by exploiting the index structure from [](#storage).
+<span class="comment" data-author="RV">No mention of index though in [](#storage)</span>
 
 ### Version Materialization
 
