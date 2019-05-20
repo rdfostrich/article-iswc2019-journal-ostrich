@@ -45,7 +45,7 @@
   <section id="abstract">
     <h2>Abstract</h2>
     <!-- Context      -->
-    <p>Next to their latest version, Linked Open Datasets on the Web
+    <p>In addition to their latest version, Linked Open Datasets on the Web
 can also contain useful information in or between previous versions.
 <!-- Need         -->
 In order to exploit this information,
@@ -193,10 +193,10 @@ Example: <em>Which books were returned or taken from the library between yesterd
 Example: <em>At what times was book X present in the library?</em></li>
     </ol>
 
-    <p>Typically, VM queries are efficient in storage solutions that are based on IC,
+    <p>Typically, VM queries are efficient in storage solutions based on IC.
 DM queries are efficient in CB solutions,
-and VQ queries perform well for TB solutions.
-On the other hand, these query types typically perform sub-optimal for other approaches.
+and VQ queries perform well in TB solutions.
+However, these query types typically perform sub-optimally in the other approaches.
 With our solution, we aim to make all query types sufficiently efficient.</p>
 
   </section>
@@ -204,9 +204,9 @@ With our solution, we aim to make all query types sufficiently efficient.</p>
   <section id="storage">
     <h2>Hybrid Multiversion Storage Approach</h2>
 
-    <p>In order to achieve evaluate all query types efficiently,
+    <p>In order to efficiently evaluate all query types,
 we introduce a hybrid IC/CB/TB storage solution.
-Our approach consists of an initial dataset snapshot—stored in <a property="schema:citation http://purl.org/spar/cito/cites" href="http://www.websemanticsjournal.org/index.php/ps/article/view/328">HDT</a> <span class="references">[<a href="#ref-7">7</a>]</span>—followed by a delta chain.
+Our approach consists of an <em>initial dataset snapshot</em>—stored in <a property="schema:citation http://purl.org/spar/cito/cites" href="http://www.websemanticsjournal.org/index.php/ps/article/view/328">HDT</a> <span class="references">[<a href="#ref-7">7</a>]</span>—followed by a <em>delta chain</em>.
 The delta chain uses multiple compressed B+Trees for a TB-storage strategy (similar to X-RDF-3X <span class="references">[<a href="#ref-11">11</a>]</span>),
 applies dictionary-encoding to triples, and
 stores additional metadata to improve lookup times.</p>
@@ -260,7 +260,8 @@ The use of the relative position during querying will be further explained in <a
     <p>In this section, we introduce algorithms for performing VM, DM and VQ triple pattern queries
 based on the storage structure introduced in <a href="#storage">Section 3</a>.
 Each of these querying algorithms are based on result streams, enabling efficient offsets and limits,
-by exploiting the index structure from <a href="#storage">Section 3</a>.</p>
+by exploiting the index structure from <a href="#storage">Section 3</a>.
+<span class="comment" data-author="RV">No mention of index though in <a href="#storage">Section 3</a></span></p>
 
     <h3 id="version-materialization">Version Materialization</h3>
 
